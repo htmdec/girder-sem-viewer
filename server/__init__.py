@@ -32,6 +32,8 @@ def import_sem_data(self, event):
         params["destinationId"], user=user, level=AccessType.ADMIN, exc=True
     )
     importPath = params.get("importPath")
+    params["fileIncludeRegex"] = r".*\.(tif|tiff|hdr)$"
+    params["fileExcludeRegex"] = r"^_\..*"
 
     if not os.path.exists(importPath):
         raise ValidationException("Not found: %s." % importPath)
