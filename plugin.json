@@ -1,0 +1,11 @@
+{
+    "name": "SEM Previews",
+    "description": "Preview items representing SEM data.",
+    "version": "1.0.0",
+    "npm": {
+        "dependencies": {
+            "tiff.js": "^1.0.0",
+            "config-ini-parser": "^1.6.1"
+        }
+    }
+}

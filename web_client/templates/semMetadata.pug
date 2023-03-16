@@ -1,0 +1,12 @@
+each entry in config
+  table.table.table-condensed.table-hover
+    caption
+      =entry.name
+    thead
+      th Name
+      th Value
+    tbody
+      each key, value in entry.data
+        tr  
+          td= value
+          td= key

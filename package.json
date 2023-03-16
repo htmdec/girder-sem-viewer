@@ -1,0 +1,17 @@
+{
+    "name": "girder-sem-viewer",
+    "version": "1.0.0",
+    "description": "Preview SEM images.",
+    "keywords": [
+        "girder",
+        "preview",
+        "previews"
+    ],
+    "license": "BSD-3",
+    "npm": {
+        "dependencies": {
+            "tiff.js": "^1.0.0",
+            "config-ini-parser": "^1.6.1"
+        }
+    }
+}
