@@ -4,6 +4,7 @@ import { wrap } from 'girder/utilities/PluginUtils';
 import ItemView from 'girder/views/body/ItemView';
 
 import SemItemView from './views/SemView';
+import './views/FilesystemImportView';
 
 wrap(ItemView, 'render', function (render) {
     this.once('g:rendered', () => {
