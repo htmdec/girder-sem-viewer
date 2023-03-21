@@ -23,7 +23,7 @@ FilesystemImportView.prototype.events['submit .g-filesystem-import-form'] = func
         leafFoldersAsItems: foldersAsItems,
         destinationId: destId,
         destinationType: destType,
-        sem: this.$('.g-sem-data').is(':checked'),
+        dataType: this.$('#g-htmdec-data').val(),
         progress: true
     });
 };

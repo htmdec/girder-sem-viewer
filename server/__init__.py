@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 
+import dateutil.parser
+import magic
 from girder import events, logger
 from girder.api import rest
 from girder.constants import AccessType
@@ -17,83 +20,143 @@ from girder.utility.progress import ProgressContext
 @rest.boundHandler
 def import_sem_data(self, event):
     params = event.info["params"]
-    if not toBool(params.get("sem", "false")):
+    if not params.get("dataType") in ("sem", "pdv"):
+        logger.warning("Importing using default importer")
         return
 
+    data_type = params["dataType"]
+    if data_type == "sem":
+        import_cls = SEMHTMDECImporter
+    elif data_type == "pdv":
+        import_cls = PDVHTMDECImporter
+    else:
+        raise ValidationException(f"Unknown data type: {data_type}")
+    logger.warning(f"Importing using {str(import_cls)} importer")
+
     if params["destinationType"] != "folder":
-        raise ValidationException("SEM data can only be imported to girder folders")
+        raise ValidationException(
+            f"{data_type} data can only be imported to girder folders"
+        )
+
+    importPath = params.get("importPath")
+    if not os.path.exists(importPath):
+        raise ValidationException("Not found: %s." % importPath)
+    if not os.path.isdir(importPath):
+        raise ValidationException("Not a directory: %s." % importPath)
 
     progress = toBool(params.get("progress", "false"))
-
     user = self.getCurrentUser()
     assetstore = Assetstore().load(event.info["id"])
     adapter = assetstore_utilities.getAssetstoreAdapter(assetstore)
     parent = self.model(params["destinationType"]).load(
         params["destinationId"], user=user, level=AccessType.ADMIN, exc=True
     )
-    importPath = params.get("importPath")
-    params["fileIncludeRegex"] = r".*\.(tif|tiff|hdr)$"
     params["fileExcludeRegex"] = r"^_\..*"
 
-    if not os.path.exists(importPath):
-        raise ValidationException("Not found: %s." % importPath)
-    if not os.path.isdir(importPath):
-        raise ValidationException("Not a directory: %s." % importPath)
-
-    with ProgressContext(progress, user=user, title="Mock Data import") as ctx:
-        _import_sem(
-            adapter,
-            parent,
-            params["destinationType"],
-            ctx,
-            user,
-            importPath,
-            params=params,
-        )
+    with ProgressContext(progress, user=user, title=f"{data_type} data import") as ctx:
+        importer = import_cls(adapter, user, ctx, params=params)
+        importer.import_data(parent, params["destinationType"], importPath)
 
     event.preventDefault().addResponse(None)
 
 
-def _import_sem(adapter, parent, parentType, progress, user, importPath, params=None):
-    params = params or {}
-    for name in os.listdir(importPath):
-        if name.endswith(".hdr"):
-            continue
-        progress.update(message=name)
-        path = os.path.join(importPath, name)
-        if os.path.isdir(path):
-            folder = Folder().createFolder(
-                parent=parent,
-                name=name,
-                parentType=parentType,
-                creator=user,
-                reuseExisting=True,
+class HTMDECImporter:
+    def __init__(self, adapter, user, progress, params=None):
+        self.adapter = adapter
+        self.user = user
+        self.progress = progress
+        self.params = params or {}
+        self.mime = magic.Magic(mime=True)
+
+    def import_data(self, parent, parentType, importPath):
+        for name in os.listdir(importPath):
+            self.progress.update(message=name)
+            path = os.path.join(importPath, name)
+            if os.path.isdir(path):
+                self.recurse_folder(parent, parentType, name, importPath)
+            else:
+                self.import_item(parent, parentType, name, importPath)
+
+    def recurse_folder(self, parent, parentType, name, importPath):
+        folder = Folder().createFolder(
+            parent=parent,
+            name=name,
+            parentType=parentType,
+            creator=self.user,
+            reuseExisting=True,
+        )
+        nextPath = os.path.join(importPath, name)
+        events.trigger(
+            "filesystem_assetstore_imported",
+            {"id": folder["_id"], "type": "folder", "importPath": nextPath},
+        )
+        self.import_data(folder, "folder", nextPath)
+
+
+class PDVHTMDECImporter(HTMDECImporter):
+    def import_item(self, parent, parentType, name, importPath):
+        try:
+            if date := re.search(r"\d{8}", name):
+                date = dateutil.parser.parse(date.group())
+                parent = Folder().createFolder(
+                    parent=parent,
+                    name=f"{date.year}",
+                    parentType=parentType,
+                    creator=self.user,
+                    reuseExisting=True,
+                )
+                parent = Folder().createFolder(
+                    parent=parent,
+                    name=f"{date.year}{date.month:02d}{date.day:02d}",
+                    parentType=parentType,
+                    creator=self.user,
+                    reuseExisting=True,
+                )
+        except dateutil.parser._parser.ParserError:
+            pass
+
+        item = Item().createItem(
+            name=name, creator=self.user, folder=parent, reuseExisting=True
+        )
+        item = Item().setMetadata(item, {"pdv": True})
+
+        fpath = os.path.join(importPath, name)
+        events.trigger(
+            "filesystem_assetstore_imported",
+            {"id": item["_id"], "type": "item", "importPath": fpath},
+        )
+        if self.adapter.shouldImportFile(fpath, self.params):
+            self.adapter.importFile(
+                item, fpath, self.user, name=name, mimeType=self.mime.from_file(fpath)
             )
-            events.trigger(
-                "filesystem_assetstore_imported",
-                {"id": folder["_id"], "type": "folder", "importPath": path},
+
+
+class SEMHTMDECImporter(HTMDECImporter):
+    def import_item(self, parent, parentType, name, importPath):
+        hdr_file = f"{name.replace('.tif', '-tif')}.hdr"
+        if not os.path.isfile(os.path.join(importPath, hdr_file)):
+            logger.warning(
+                f"Importing {os.path.join(importPath, name)} failed because of missing header"
             )
-            nextPath = os.path.join(importPath, name)
-            _import_sem(
-                adapter, folder, "folder", progress, user, nextPath, params=params
-            )
-        else:
-            hdr_file = f"{name.replace('.tif', '-tif')}.hdr"
-            if not os.path.isfile(os.path.join(importPath, hdr_file)):
-                logger.warning(f"Importing {path} failed because of missing header")
-                continue
-            item = Item().createItem(
-                name=name, creator=user, folder=parent, reuseExisting=True
-            )
-            item = Item().setMetadata(item, {"sem": True})
-            events.trigger(
-                "filesystem_assetstore_imported",
-                {"id": item["_id"], "type": "item", "importPath": importPath},
-            )
-            for fname, mimeType in ((name, "image/tiff"), (hdr_file, "text/plain")):
-                fpath = os.path.join(importPath, fname)
-                if adapter.shouldImportFile(fpath, params):
-                    adapter.importFile(item, fpath, user, name=fname, mimeType=mimeType)
+            return
+        item = Item().createItem(
+            name=name, creator=self.user, folder=parent, reuseExisting=True
+        )
+        item = Item().setMetadata(item, {"sem": True})
+        events.trigger(
+            "filesystem_assetstore_imported",
+            {
+                "id": item["_id"],
+                "type": "item",
+                "importPath": os.path.join(importPath, name),
+            },
+        )
+        for fname, mimeType in ((name, "image/tiff"), (hdr_file, "text/plain")):
+            fpath = os.path.join(importPath, fname)
+            if self.adapter.shouldImportFile(fpath, self.params):
+                self.adapter.importFile(
+                    item, fpath, self.user, name=fname, mimeType=mimeType
+                )
 
 
 def load(info):

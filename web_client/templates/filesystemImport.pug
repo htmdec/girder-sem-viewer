@@ -1,3 +1,6 @@
 .form-group
-  label(for="g-filesystem-import-sem") SEM Data  
-    input.g-sem-data(type="checkbox", checked=false)
+  label(for="g-htmdec-data") HTMDEC Data
+    select#g-htmdec-data.form-control.input-sm
+      option(value="default", selected=true) Not HTMDEC
+      option(value="sem") SEM Data
+      option(value="pdv") PDV Data
