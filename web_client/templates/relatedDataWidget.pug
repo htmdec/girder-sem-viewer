@@ -1,0 +1,12 @@
+.g-item-rel-sims.g-info.list-entry
+   i.icon-link-ext
+   | Related Data
+   each folder in folders
+      li.g-sim-list-entry
+         a.g-item-list-link.g-right-border(g-item-cid=folder.cid, href=`#folder/${folder._id}`)
+           = folder.name
+   each item in items
+      if (item._id != parentView.model.id)
+        li.g-sim-list-entry
+           a.g-item-list-link.g-right-border(g-item-cid=item.cid, href=`#item/${item._id}`)
+             = item.name
