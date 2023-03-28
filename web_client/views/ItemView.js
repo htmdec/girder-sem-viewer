@@ -27,7 +27,6 @@ wrap(ItemView, 'render', function (render) {
         if (this._dataRequest !== null) {
             this._dataRequest
                 .done((results) => {
-                    console.log(this);
                     $('.g-item-info').append(RelatedDataWidgetTemplate({
                         items: results.item,
                         folders: results.folder,
