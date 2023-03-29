@@ -32,6 +32,21 @@ wrap(ItemView, 'render', function (render) {
                         folders: results.folder,
                         parentView: this
                     }));
+                    const dsItems = results.item.map((obj) => {
+                        return {itemId: obj._id, mountPath: `/${obj.name}`, _modelType: 'item'};
+                    });
+                    const dsFolders = results.folder.map((obj) => {
+                        return {itemId: obj._id, mountPath: `/${obj.name}`, _modelType: 'folder'};
+                    });
+                    const dataSet = dsItems.concat(dsFolders);
+                    const subDomain = window.location.hostname.split('.')[0];
+                    // TODO: get from settings
+                    const dashboardUrl = window.location.origin.replace(subDomain, 'dashboard') + '/mine';
+                    const params = new URLSearchParams();
+                    params.set('name', 'My Tale');
+                    params.set('asTale', false);
+                    params.set('dataSet', JSON.stringify(dataSet));
+                    document.querySelector('#ainwt').href = `${dashboardUrl}?${params.toString()}`;
                 });
         }
     }, this);
