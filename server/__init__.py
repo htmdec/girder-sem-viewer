@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from bson import ObjectId
+import json
 import os
 import re
 
@@ -11,6 +13,7 @@ from girder.api import rest
 from girder.constants import AccessType
 from girder.exceptions import ValidationException
 from girder.models.assetstore import Assetstore
+from girder.models.model_base import ModelImporter
 from girder.models.folder import Folder
 from girder.models.item import Item
 from girder.utility import assetstore_utilities, toBool
@@ -58,6 +61,53 @@ def import_sem_data(self, event):
         importer.import_data(parent, params["destinationType"], importPath)
 
     event.preventDefault().addResponse(None)
+
+
+@rest.boundHandler
+def search_resources(self, event):
+    params = event.info["params"]
+    mode = params.get("mode", "text")
+    if mode != "boundText":
+        return
+
+    filters = {}
+    for key, value in json.loads(params.get("filters", "{}")).items():
+        if key.endswith("Id"):
+            filters[key] = ObjectId(value)
+        else:
+            filters[key] = value
+
+    level = params.get("level", AccessType.READ)
+
+    level = AccessType.validate(level)
+    user = self.getCurrentUser()
+    types = json.loads(params.get("types", "[]"))
+
+    results = {}
+    for modelName in types:
+        if modelName not in ["item", "folder"]:
+            continue
+
+        if "." in modelName:
+            name, plugin = modelName.rsplit(".", 1)
+            model = ModelImporter.model(name, plugin)
+        else:
+            model = ModelImporter.model(modelName)
+
+        if model is not None:
+            results[modelName] = [
+                model.filter(d, user)
+                for d in model.textSearch(
+                    query=params.get("q"),
+                    user=user,
+                    limit=int(params.get("limit", "10")),
+                    offset=int(params.get("offset", "0")),
+                    level=level,
+                    filters=filters,
+                )
+            ]
+
+    event.preventDefault().addResponse(results)
 
 
 class HTMDECImporter:
@@ -163,3 +213,4 @@ def load(info):
     Item().exposeFields(level=AccessType.READ, fields="sem")
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
+    events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)

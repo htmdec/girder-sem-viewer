@@ -8,14 +8,20 @@ import '../stylesheets/relatedDataWidget.styl';
 wrap(ItemView, 'initialize', function (initialize, ...args) {
     initialize.apply(this, args);
     const tag = this.model.attributes.name.match(/\d{8}--\d{5}/gm) || [''];
+    // Restrict search to items/folders in the same collection
+    const filters = {
+        baseParentId: this.model.attributes.baseParentId,
+        baseParentType: this.model.attributes.baseParentType
+    }
     const q = `"${tag[0]}"`;
     if (q !== '') {
         this._dataRequest = restRequest({
             url: 'resource/search',
             data: {
-                q: `"${tag[0]}"`,
-                mode: 'text',
+                q: q,
+                mode: 'boundText',
                 types: JSON.stringify(['item', 'folder']),
+                filters: JSON.stringify(filters),
                 limit: 10
             }
         });
