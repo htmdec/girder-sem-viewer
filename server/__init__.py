@@ -9,7 +9,7 @@ import re
 import dateutil.parser
 import magic
 from girder import events, logger
-from girder.api import rest
+from girder.api import access, rest
 from girder.constants import AccessType
 from girder.exceptions import ValidationException
 from girder.models.assetstore import Assetstore
@@ -63,6 +63,7 @@ def import_sem_data(self, event):
     event.preventDefault().addResponse(None)
 
 
+@access.public
 @rest.boundHandler
 def search_resources(self, event):
     params = event.info["params"]
@@ -78,7 +79,6 @@ def search_resources(self, event):
             filters[key] = value
 
     level = params.get("level", AccessType.READ)
-
     level = AccessType.validate(level)
     user = self.getCurrentUser()
     types = json.loads(params.get("types", "[]"))
