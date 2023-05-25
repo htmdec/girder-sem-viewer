@@ -7,19 +7,18 @@ import '../stylesheets/relatedDataWidget.styl';
 
 wrap(ItemView, 'initialize', function (initialize, ...args) {
     initialize.apply(this, args);
-    const tag = this.model.attributes.name.match(/\d{8}--\d{5}/gm) || [''];
+    const tag = this.model.attributes.meta["jhu_id"] || '';
     // Restrict search to items/folders in the same collection
     const filters = {
         baseParentId: this.model.attributes.baseParentId,
         baseParentType: this.model.attributes.baseParentType
     }
-    const q = `"${tag[0]}"`;
-    if (q !== '') {
+    if (tag !== '') {
         this._dataRequest = restRequest({
             url: 'resource/search',
             data: {
-                q: q,
-                mode: 'boundText',
+                q: tag,
+                mode: 'jhuId',
                 types: JSON.stringify(['item', 'folder']),
                 filters: JSON.stringify(filters),
                 limit: 10

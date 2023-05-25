@@ -68,7 +68,7 @@ def import_sem_data(self, event):
 def search_resources(self, event):
     params = event.info["params"]
     mode = params.get("mode", "text")
-    if mode != "boundText":
+    if mode not in ("boundText", "jhuId"):
         return
 
     filters = {}
@@ -78,21 +78,71 @@ def search_resources(self, event):
         else:
             filters[key] = value
 
+    user = self.getCurrentUser()
+    limit, offset, sort = self.getPagingParameters(params, "name")
+    types = json.loads(params.get("types", "[]"))
     level = params.get("level", AccessType.READ)
     level = AccessType.validate(level)
-    user = self.getCurrentUser()
-    types = json.loads(params.get("types", "[]"))
 
+    if mode == "boundText":
+        return boundText_search(event, user, filters, level, limit, offset, sort, types)
+    elif mode == "jhuId":
+        return jhuId_search(event, user, filters, level, limit, offset, sort, types)
+
+
+def _get_model(modelName):
+    if modelName not in ["item", "folder"]:
+        return
+
+    if "." in modelName:
+        name, plugin = modelName.rsplit(".", 1)
+        model = ModelImporter.model(name, plugin)
+    else:
+        model = ModelImporter.model(modelName)
+    return model
+
+
+def jhuId_search(event, user, filters, level, limit, offset, sort, types):
+    params = event.info["params"]
+    results = {}
+    allowed = {
+        "collection": ["_id", "name", "description"],
+        "folder": ["_id", "name", "description", "meta", "parentId"],
+        "item": ["_id", "name", "description", "meta", "folderId"],
+        "user": ["_id", "firstName", "lastName", "login"],
+    }
+
+    for modelName in types:
+        model = _get_model(modelName)
+        if model is not None:
+            query = {"meta.jhu_id": params.get("q")}
+            if hasattr(model, "filterResultsByPermission"):
+                cursor = model.find(
+                    query, fields=allowed[modelName] + ["public", "access"]
+                )
+                results[modelName] = list(
+                    model.filterResultsByPermission(
+                        cursor, user, level, limit=limit, offset=offset
+                    )
+                )
+            else:
+                results[modelName] = list(
+                    model.find(
+                        query,
+                        fields=allowed[modelName],
+                        limit=limit,
+                        offset=offset,
+                        sort=sort,
+                    )
+                )
+    event.preventDefault().addResponse(results)
+
+
+def boundText_search(event, user, filters, level, limit, offset, sort, types):
+    params = event.info["params"]
     results = {}
     for modelName in types:
-        if modelName not in ["item", "folder"]:
-            continue
-
-        if "." in modelName:
-            name, plugin = modelName.rsplit(".", 1)
-            model = ModelImporter.model(name, plugin)
-        else:
-            model = ModelImporter.model(modelName)
+        model = _get_model(modelName)
 
         if model is not None:
             results[modelName] = [
