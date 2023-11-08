@@ -27,26 +27,27 @@ const SemItemView = View.extend({
 
         this.collection.on('g:changed', function () {
             const files = this.toArray();
-            files.forEach((fobj) => {
-                restRequest({
-                    url: `file/${fobj.id}/download`,
-                    xhrFields: {
-                        responseType: 'arraybuffer'
-                    }
-                })
-                    .done((resp) => {
-                        if (fobj.attributes.mimeType === 'image/tiff') {
-                            const dataView = new Tiff({buffer: resp});
-                            const canvas = dataView.toCanvas();
-                            view.image = canvas.toDataURL('image/jpeg', 0.8);
-                            view.trigger('g:tiffLoaded');
-                        } else {
-                            const parser = new ConfigIniParser('\r\n');
-                            parser.parse(new TextDecoder('utf-8').decode(resp)); // or not use arraybuffer
-                            view.config = parser;
-                            view.trigger('g:configLoaded');
-                        }
-                    });
+            restRequest({
+                url: `file/${files[0].id}/download`,
+                xhrFields: {
+                    responseType: 'arraybuffer'
+                }
+            }).done((resp) => {
+                Tiff.initialize({
+                    TOTAL_MEMORY: 100000000
+                });
+                const dataView = new Tiff({buffer: resp});
+                const canvas = dataView.toCanvas();
+                view.image = canvas.toDataURL('image/jpeg', 0.8);
+                view.trigger('g:tiffLoaded');
+            });
+            restRequest({
+                url: `item/${settings.item.id}/tiff_metadata`,
+            }).done((resp) => {
+                const parser = new ConfigIniParser('\r\n');
+                parser.parse(resp);
+                view.config = parser;
+                view.trigger('g:configLoaded');
             });
         }).fetch({ itemId: settings.item.id });
         this.listenTo(this, 'g:tiffLoaded', this.render);

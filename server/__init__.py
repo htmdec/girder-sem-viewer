@@ -1,29 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from bson import ObjectId
 import json
 import os
 import re
 
 import dateutil.parser
 import magic
+from bson import ObjectId
 from girder import events, logger
 from girder.api import access, rest
+from girder.api.describe import autoDescribeRoute, Description
+from girder.api.rest import boundHandler, setResponseHeader
 from girder.constants import AccessType
-from girder.exceptions import ValidationException
+from girder.exceptions import FilePathException, ValidationException
 from girder.models.assetstore import Assetstore
-from girder.models.model_base import ModelImporter
+from girder.models.file import File
 from girder.models.folder import Folder
 from girder.models.item import Item
+from girder.models.model_base import ModelImporter
 from girder.utility import assetstore_utilities, toBool
 from girder.utility.progress import ProgressContext
+from PIL import Image, UnidentifiedImageError
 
 
 @rest.boundHandler
 def import_sem_data(self, event):
     params = event.info["params"]
-    if not params.get("dataType") in ("sem", "pdv"):
+    if params.get("dataType") not in ("sem", "pdv"):
         logger.warning("Importing using default importer")
         return
 
@@ -259,8 +263,69 @@ class SEMHTMDECImporter(HTMDECImporter):
                 )
 
 
+def getTiffHeaderFromFile(path):
+    try:
+        with Image.open(path) as img:
+            return next(
+                (
+                    _
+                    for _ in img.tag_v2.values()
+                    if isinstance(_, str) and "[User]" in _
+                ),
+                None,
+            )
+    except UnidentifiedImageError:
+        pass
+
+
+def getTiffHeaderFromItemMeta(item):
+    fileId = item.get("meta", {}).get("headerId")
+    if not fileId:
+        return
+    try:
+        fobj = File().load(fileId, force=True, exc=True)
+        with File().open(fobj) as fp:
+            return fp.read().decode("utf-8")
+    except Exception:
+        pass
+
+
+@access.user
+@boundHandler
+@autoDescribeRoute(
+    Description("Get Tiff metadata from an item").modelParam(
+        "id", model="item", level=AccessType.READ
+    )
+)
+def get_tiff_metadata(self, item):
+    try:
+        child_file = list(Item().childFiles(item))[0]
+    except IndexError:
+        return
+    try:
+        path = File().getLocalFilePath(child_file)
+    except FilePathException:
+        path = None
+
+    header = None
+    if path:
+        header = getTiffHeaderFromFile(path)
+
+    if not header:
+        header = getTiffHeaderFromItemMeta(item)
+
+    if not header:
+        header = "[MAIN]\r\nnoheader=1\r\n"
+
+    setResponseHeader("Content-Type", "text/plain")
+    return header
+
+
 def load(info):
     Item().exposeFields(level=AccessType.READ, fields="sem")
+    File().ensureIndex(["sha512", {"sparse": False}])
+
+    info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
     events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)

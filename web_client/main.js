@@ -9,7 +9,7 @@ import './views/ItemView';
 
 wrap(ItemView, 'render', function (render) {
     this.once('g:rendered', () => {
-        if (this.model.has('meta') && Boolean(this.model.attributes.meta.sem)) {
+        if (this.model.attributes.name.endsWith('.tif')) {
             new SemItemView({
                 parentView: this,
                 item: this.model
