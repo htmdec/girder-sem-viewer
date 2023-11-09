@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import base64
+import io
 import json
 import os
 import re
@@ -321,11 +323,44 @@ def get_tiff_metadata(self, item):
     return header
 
 
+@access.user
+@boundHandler
+@autoDescribeRoute(
+    Description("Get thumbnail for SEM data").modelParam(
+        "id", model="item", level=AccessType.READ
+    )
+)
+def get_sem_thumbnail(self, item):
+    try:
+        child_file = list(Item().childFiles(item))[0]
+    except IndexError:
+        return
+    try:
+        path = File().getLocalFilePath(child_file)
+    except FilePathException:
+        path = None
+
+    if not path:
+        return
+
+    try:
+        with Image.open(path, "r") as img:
+            img.mode = "I"
+            img = img.point(lambda i:i*(1./256)).convert('L')
+            img.thumbnail((1000, 1000), Image.ANTIALIAS)
+            fp = io.BytesIO()
+            img.save(fp, format="PNG")
+            return base64.b64encode(fp.getvalue()).decode()
+    except UnidentifiedImageError:
+        pass
+
+
 def load(info):
     Item().exposeFields(level=AccessType.READ, fields="sem")
     File().ensureIndex(["sha512", {"sparse": False}])
 
     info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
+    info["apiRoot"].item.route("GET", (":id", "tiff_thumbnail"), get_sem_thumbnail)
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
     events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)

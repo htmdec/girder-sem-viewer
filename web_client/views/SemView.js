@@ -1,4 +1,3 @@
-import Tiff from 'tiff.js';
 // import { ConfigIniParser } from "config-ini-parser";
 import { restRequest } from 'girder/rest';
 import View from 'girder/views/View';
@@ -26,19 +25,10 @@ const SemItemView = View.extend({
         var view = this;
 
         this.collection.on('g:changed', function () {
-            const files = this.toArray();
             restRequest({
-                url: `file/${files[0].id}/download`,
-                xhrFields: {
-                    responseType: 'arraybuffer'
-                }
+                url: `item/${settings.item.id}/tiff_thumbnail`,
             }).done((resp) => {
-                Tiff.initialize({
-                    TOTAL_MEMORY: 100000000
-                });
-                const dataView = new Tiff({buffer: resp});
-                const canvas = dataView.toCanvas();
-                view.image = canvas.toDataURL('image/jpeg', 0.8);
+                view.image = `data:image/png;base64,${resp}`;
                 view.trigger('g:tiffLoaded');
             });
             restRequest({
