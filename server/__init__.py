@@ -122,6 +122,7 @@ def jhuId_search(event, user, filters, level, limit, offset, sort, types):
         model = _get_model(modelName)
         if model is not None:
             query = {"meta.jhu_id": params.get("q")}
+            query.update(filters)
             if hasattr(model, "filterResultsByPermission"):
                 cursor = model.find(
                     query, fields=allowed[modelName] + ["public", "access"]
