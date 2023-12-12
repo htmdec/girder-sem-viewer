@@ -1,5 +1,9 @@
-.g-graph-view
+.g-graph-container
   .g-item-info-header
     i.icon-picture
     | GEMD Graph
-  div(id='cy')
+.g-graph-panes.clearfix
+  .g-graph-left
+    div(id='cy')
+  .g-graph-right
+    pre(id='cy-json')

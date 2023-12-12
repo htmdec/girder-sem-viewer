@@ -47,7 +47,8 @@ cytoscape('core', 'graphml', function (cyGraphML) {
                     group: 'nodes',
                     data: settings.data,
                     css: settings.css,
-                    position: settings.position
+                    position: settings.position,
+                    style: { "background-color": settings.data.d1 }
                 });
 
                 $node.children('graph').each(function () {
@@ -131,7 +132,7 @@ const GraphItemView = View.extend({
         this.$el.html(GraphItemTemplate({}));
         if (document.getElementById('cy')) {
             var view = this;
-            cytoscape({
+            var cy = cytoscape({
                 container: document.getElementById('cy'),
                 style: [
                     {
@@ -161,6 +162,11 @@ const GraphItemView = View.extend({
                     this.graphml({layoutBy: 'cose'});
                     this.graphml(view.graphFile);
                 }
+            });
+            cy.on('tap', 'node', function () {
+                const pretty = JSON.stringify(JSON.parse(this.data("d5")), null, 2);
+                document.getElementById('cy-json').textContent = pretty;
+                console.log('tapped ' + this.id());
             });
         }
 
