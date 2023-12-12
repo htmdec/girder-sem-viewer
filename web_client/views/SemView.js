@@ -26,13 +26,13 @@ const SemItemView = View.extend({
 
         this.collection.on('g:changed', function () {
             restRequest({
-                url: `item/${settings.item.id}/tiff_thumbnail`,
+                url: `item/${settings.item.id}/tiff_thumbnail`
             }).done((resp) => {
                 view.image = `data:image/png;base64,${resp}`;
                 view.trigger('g:tiffLoaded');
             });
             restRequest({
-                url: `item/${settings.item.id}/tiff_metadata`,
+                url: `item/${settings.item.id}/tiff_metadata`
             }).done((resp) => {
                 const parser = new ConfigIniParser('\r\n');
                 parser.parse(resp);
@@ -53,7 +53,6 @@ const SemItemView = View.extend({
             el: this.$('.g-sem-tags'),
             parentView: this
         });
-
         this._semImageView.render();
         this._semMetadataView.render();
 

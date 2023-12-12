@@ -8,13 +8,13 @@ import '../stylesheets/relatedDataWidget.styl';
 wrap(ItemView, 'initialize', function (initialize, ...args) {
     initialize.apply(this, args);
     this._dataRequest = null;
-    if (this.model.attributes.meta && this.model.attributes.meta["jhu_id"]) {
-        const tag = this.model.attributes.meta["jhu_id"];
+    if (this.model.attributes.meta && this.model.attributes.meta['jhu_id']) {
+        const tag = this.model.attributes.meta['jhu_id'];
         // Restrict search to items/folders in the same collection
         const filters = {
             baseParentId: this.model.attributes.baseParentId,
             baseParentType: this.model.attributes.baseParentType
-        }
+        };
         this._dataRequest = restRequest({
             url: 'resource/search',
             data: {
