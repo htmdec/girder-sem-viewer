@@ -30,8 +30,11 @@ cytoscape('core', 'graphml', function (cyGraphML) {
             $graph.children('node').each(function () {
                 var $node = $(this);
 
+                var label = $node.attr('id');
+                if (label.includes('[')) label = label.split(' [')[0];
+
                 var settings = {
-                    data: {id: $node.attr('id')},
+                    data: {id: $node.attr('id'), label: label},
                     css: {},
                     position: {}
                 };
@@ -48,7 +51,7 @@ cytoscape('core', 'graphml', function (cyGraphML) {
                     data: settings.data,
                     css: settings.css,
                     position: settings.position,
-                    style: { "background-color": settings.data.d1 }
+                    style: { "background-color": settings.data.color }
                 });
 
                 $node.children('graph').each(function () {
@@ -139,7 +142,7 @@ const GraphItemView = View.extend({
                         selector: 'node',
                         style: {
                             'background-color': '#666',
-                            'label': 'data(id)'
+                            'label': 'data(label)'
                         }
                     },
                     {
@@ -164,7 +167,7 @@ const GraphItemView = View.extend({
                 }
             });
             cy.on('tap', 'node', function () {
-                const pretty = JSON.stringify(JSON.parse(this.data("d5")), null, 2);
+                const pretty = JSON.stringify(JSON.parse(this.data("object")), null, 2);
                 document.getElementById('cy-json').textContent = pretty;
                 console.log('tapped ' + this.id());
             });
