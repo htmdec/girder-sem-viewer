@@ -168,7 +168,11 @@ const GraphItemView = View.extend({
             });
             cy.on('tap', 'node', function () {
                 const pretty = JSON.stringify(JSON.parse(this.data("object")), null, 2);
-                document.getElementById('cy-json').textContent = pretty;
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const prettier = pretty.replace(urlRegex, function(url) {
+                    return '<a href="' + url + '" target="_blank">' + url + '</a>';
+                });
+                document.getElementById('cy-json').innerHTML = '<pre>' + prettier + '</pre>';
                 console.log('tapped ' + this.id());
             });
         }
