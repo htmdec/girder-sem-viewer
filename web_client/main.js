@@ -8,6 +8,7 @@ import SemItemView from './views/SemView';
 import GraphItemView from './views/GraphView';
 import './views/FilesystemImportView';
 import './views/ItemView';
+import './views/UploadWidget';
 
 wrap(ItemView, 'render', function (render) {
     this.once('g:rendered', () => {

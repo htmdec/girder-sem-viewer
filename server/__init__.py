@@ -357,12 +357,38 @@ def get_sem_thumbnail(self, item):
         pass
 
 
+@access.user
+@boundHandler
+@autoDescribeRoute(
+    Description("Create folders recursively")
+    .param("parentId", "The ID of the parent object", required=True)
+    .param("parentType", "The type of the parent object", required=True)
+    .param("path", "The path to create", required=True)
+)
+def create_folders(self, parentId, parentType, path):
+    user = self.getCurrentUser()
+    parent = ModelImporter.model(parentType).load(
+        parentId, user=user, level=AccessType.WRITE, exc=True
+    )
+    for name in path.split("/"):
+        parent = Folder().createFolder(
+            parent=parent,
+            name=name,
+            parentType=parentType,
+            creator=self.getCurrentUser(),
+            reuseExisting=True,
+        )
+        parentType = "folder"
+    return Folder().filter(parent, user)
+
+
 def load(info):
     Item().exposeFields(level=AccessType.READ, fields="sem")
     File().ensureIndex(["sha512", {"sparse": False}])
 
     info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
     info["apiRoot"].item.route("GET", (":id", "tiff_thumbnail"), get_sem_thumbnail)
+    info["apiRoot"].folder.route("POST", ("recursive",), create_folders)
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
     events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)

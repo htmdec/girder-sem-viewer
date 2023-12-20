@@ -51,7 +51,7 @@ cytoscape('core', 'graphml', function (cyGraphML) {
                     data: settings.data,
                     css: settings.css,
                     position: settings.position,
-                    style: { "background-color": settings.data.color }
+                    style: { 'background-color': settings.data.color }
                 });
 
                 $node.children('graph').each(function () {
@@ -167,9 +167,9 @@ const GraphItemView = View.extend({
                 }
             });
             cy.on('tap', 'node', function () {
-                const pretty = JSON.stringify(JSON.parse(this.data("object")), null, 2);
+                const pretty = JSON.stringify(JSON.parse(this.data('object')), null, 2);
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
-                const prettier = pretty.replace(urlRegex, function(url) {
+                const prettier = pretty.replace(urlRegex, function (url) {
                     return '<a href="' + url + '" target="_blank">' + url + '</a>';
                 });
                 document.getElementById('cy-json').innerHTML = '<pre>' + prettier + '</pre>';
