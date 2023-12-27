@@ -129,7 +129,7 @@ wrap(UploadWidget, 'events', function (events) {
 
 wrap(UploadWidget, 'uploadNextFile', function (uploadNextFile) {
     const groupedFiles = groupFilesBySubdirectory(this.files);
-    if (groupedFiles.length === 1) {
+    if (groupedFiles.length === 1 && groupedFiles[0][0].webkitRelativePath === '') {
         uploadNextFile.call(this);
     } else {
         this.totalFiles = this.files.length;
