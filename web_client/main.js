@@ -12,7 +12,7 @@ import './views/UploadWidget';
 
 wrap(ItemView, 'render', function (render) {
     this.once('g:rendered', () => {
-        if (this.model.attributes.name.endsWith('.tif')) {
+        if (this.model.attributes.name.endsWith('.tif') || this.model.attributes.name.endsWith('.tiff')) {
             new SemItemView({
                 parentView: this,
                 item: this.model
