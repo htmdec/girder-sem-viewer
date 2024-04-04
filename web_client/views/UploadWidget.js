@@ -47,15 +47,22 @@ function groupFilesBySubdirectory(fileList) {
     return Array.from(groupedFiles.values());
 }
 
+wrap(UploadWidget, 'initialize', function (initialize, settings) {
+    initialize.call(this, settings);
+    this.onlyFiles = _.has(settings, 'onlyFiles') ? settings.onlyFiles : false;
+    this.onlyFolders = _.has(settings, 'onlyFolders') ? settings.onlyFolders : false;
+    return this;
+});
+
 wrap(UploadWidget, 'render', function (render) {
     this.parentType = this.parent.attributes._modelType;
     render.call(this);
-    if (this.parentType !== 'item') {
+    if (this.parentType !== 'item' && !this.onlyFiles) {
         var uploadFolder = '<div class="g-upload-folder"><i class="icon-folder-open"></i>Select a folder to upload</div>';
         uploadFolder += '<div class="form-group hide"><input type="file" id="folderInput" webkitdirectory multiple></div>';
         this.$('.g-drop-zone').after(uploadFolder);
     }
-    if (this.parentType === 'user' || this.parentType === 'collection') {
+    if (this.parentType === 'user' || this.parentType === 'collection' || this.onlyFolders) {
         this.$('.g-drop-zone').addClass('hide');
     }
     return this;
@@ -151,7 +158,8 @@ wrap(UploadWidget, 'uploadNextFileRecursive', function (uploadNextFileRecursive)
         }
         this.trigger('g:uploadFinished', {
             files: [].concat(...this.groupedFiles),
-            totalFiles: this.totalFiles
+            totalFiles: this.totalFiles,
+            folder: folder // Add folder to the event
         });
         return;
     }
