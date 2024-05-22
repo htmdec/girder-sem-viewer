@@ -347,9 +347,8 @@ def get_sem_thumbnail(self, item):
     try:
         with Image.open(path, "r") as img:
             if img.mode != "RGB":
-                img.mode = "I"
-                img = img.point(lambda i: i * (1.0 / 256)).convert('L')
-            img.thumbnail((1000, 1000), Image.ANTIALIAS)
+                img = img.convert(mode="I").point(lambda i: i * (1.0 / 256)).convert(mode="L")
+            img.thumbnail((1000, 1000))
             fp = io.BytesIO()
             img.save(fp, format="PNG")
             return base64.b64encode(fp.getvalue()).decode()
