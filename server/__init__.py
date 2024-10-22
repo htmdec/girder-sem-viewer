@@ -49,6 +49,14 @@ class IgnoreURLFilter(logging.Filter):
         return match not in record.getMessage()
 
 
+class IgnorePhraseFilter(logging.Filter):
+    def __init__(self, phrase):
+        self.phrase = phrase
+
+    def filter(self, record):
+        return self.phrase not in record.getMessage()
+
+
 @rest.boundHandler
 def import_sem_data(self, event):
     params = event.info["params"]
@@ -418,4 +426,6 @@ def load(info):
     filter_logging.addLoggingFilter(regex, 3)
     for handler in cherrypy.log.access_log.handlers:
         handler.addFilter(IgnoreURLFilter(("system", "check")))
+        handler.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
     auditLogger.addFilter(IgnoreURLFilter(("system", "check")))
+    auditLogger.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
