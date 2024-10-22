@@ -4,15 +4,17 @@
 import base64
 import io
 import json
+import logging
 import os
 import re
 
+import cherrypy
 import dateutil.parser
 import magic
 from bson import ObjectId
-from girder import events, logger
-from girder.api import access, rest
-from girder.api.describe import autoDescribeRoute, Description
+from girder import auditLogger, events, logger
+from girder.api import access, filter_logging, rest
+from girder.api.describe import Description, autoDescribeRoute
 from girder.api.rest import boundHandler, setResponseHeader
 from girder.constants import AccessType
 from girder.exceptions import FilePathException, ValidationException
@@ -24,6 +26,27 @@ from girder.models.model_base import ModelImporter
 from girder.utility import assetstore_utilities, toBool
 from girder.utility.progress import ProgressContext
 from PIL import Image, UnidentifiedImageError
+
+
+class IgnoreURLFilter(logging.Filter):
+    # simple example of log message filtering
+    # https://stackoverflow.com/a/12345788/4084258
+
+    def __init__(self, path, verb="GET", status=200):
+        self.verb = verb
+        self.path = path
+        self.status = status
+
+    def filter(self, record):
+        if hasattr(record, "details"):
+            if (
+                record.details.get("method") == self.verb
+                and record.details.get("route") == self.path
+                and record.details.get("status") == self.status
+            ):
+                return False
+        match = f"{self.verb} /api/v1/{'/'.join(self.path)}"
+        return match not in record.getMessage()
 
 
 @rest.boundHandler
@@ -391,3 +414,8 @@ def load(info):
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
     events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
+    regex = "GET ([^/ ?#]+)*/system/check[/ ?#]"
+    filter_logging.addLoggingFilter(regex, 3)
+    for handler in cherrypy.log.access_log.handlers:
+        handler.addFilter(IgnoreURLFilter(("system", "check")))
+    auditLogger.addFilter(IgnoreURLFilter(("system", "check")))
