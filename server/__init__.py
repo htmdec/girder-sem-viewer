@@ -27,6 +27,8 @@ from girder.utility import assetstore_utilities, toBool
 from girder.utility.progress import ProgressContext
 from PIL import Image, UnidentifiedImageError
 
+from .rest.amdee import AMDEE
+
 
 class IgnoreURLFilter(logging.Filter):
     # simple example of log message filtering
@@ -57,7 +59,7 @@ class IgnorePhraseFilter(logging.Filter):
         return self.phrase not in record.getMessage()
 
 
-@rest.boundHandler
+@boundHandler
 def import_sem_data(self, event):
     params = event.info["params"]
     if params.get("dataType") not in ("sem", "pdv"):
@@ -101,7 +103,7 @@ def import_sem_data(self, event):
 
 
 @access.public
-@rest.boundHandler
+@boundHandler
 def search_resources(self, event):
     params = event.info["params"]
     mode = params.get("mode", "text")
@@ -419,6 +421,8 @@ def load(info):
     info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
     info["apiRoot"].item.route("GET", (":id", "tiff_thumbnail"), get_sem_thumbnail)
     info["apiRoot"].folder.route("POST", ("recursive",), create_folders)
+
+    info["apiRoot"].amdee = AMDEE()
 
     events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
     events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
