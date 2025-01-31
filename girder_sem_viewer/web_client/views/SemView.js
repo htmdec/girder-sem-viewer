@@ -1,14 +1,14 @@
-// import { ConfigIniParser } from "config-ini-parser";
-import { restRequest } from 'girder/rest';
-import View from 'girder/views/View';
-import FileCollection from 'girder/collections/FileCollection';
 
 import SemItemTemplate from '../templates/semItem.pug';
 import '../stylesheets/semItem.styl';
 import SemMetadataTemplate from '../templates/semMetadata.pug';
 import '../stylesheets/semMetadata.styl';
 
-const ConfigIniParser = require('config-ini-parser').ConfigIniParser;
+import { ConfigIniParser } from 'config-ini-parser';
+
+const { restRequest } = girder.rest;
+const View = girder.views.View;
+const FileCollection = girder.collections.FileCollection;
 
 const SemItemView = View.extend({
     className: 'g-sem-view',

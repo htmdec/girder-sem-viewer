@@ -1,0 +1,45 @@
+{
+    "name": "@girder/girder-sem-viewer",
+    "version": "2.0.0",
+    "description": "Preview SEM images in Girder",
+    "homepage": "https://github.com/htmdec/sem_viewer",
+    "bugs": {
+      "url": "https://github.com/htmdec/sem_viewer/issues"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/htmdec/sem_viewer.git"
+    },
+    "type": "module",
+    "files": [
+      "dist",
+      "package.json"
+    ],
+    "main": "./dist/girder-plugin-sem-viewer.umd.js",
+    "module": "./dist/girder-plugin-sem-viewer.js",
+    "exports": {
+      ".": {
+        "import": "./dist/girder-plugin-sem-viewer.js",
+        "require": "./dist/girder-plugin-sem-viewer.umd.js"
+      },
+      "./package.json": "./package.json",
+      "./styles.css": "./dist/styles.css"
+    },
+    "scripts": {
+      "build": "vite build",
+      "dev": "vite build --watch"
+    },
+    "author": "Kacper Kowalik",
+    "license": "BSD-3",
+    "dependencies": {
+      "@girder/core": "*",
+      "cytoscape": "^3.28.0",
+      "config-ini-parser": "^1.6.1"
+    },
+    "devDependencies": {
+      "pug": "^3.0.2",
+      "stylus": "^0.54.8",
+      "vite": "^4.3.9",
+      "vite-plugin-istanbul": "^4.1.0"
+    }
+}

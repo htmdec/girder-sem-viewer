@@ -1,9 +1,9 @@
-import { restRequest } from 'girder/rest';
-import ItemView from 'girder/views/body/ItemView';
-import { wrap } from 'girder/utilities/PluginUtils';
-
 import RelatedDataWidgetTemplate from '../templates/relatedDataWidget.pug';
 import '../stylesheets/relatedDataWidget.styl';
+
+const { restRequest } = girder.rest;
+const ItemView = girder.views.body.ItemView;
+const { wrap } = girder.utilities.PluginUtils;
 
 wrap(ItemView, 'initialize', function (initialize, ...args) {
     initialize.apply(this, args);

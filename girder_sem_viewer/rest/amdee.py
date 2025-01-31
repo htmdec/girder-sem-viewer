@@ -8,8 +8,8 @@ from girder.models.folder import Folder
 from girder.models.item import Item
 
 
-regx = re.compile("^.*master.h5$", re.IGNORECASE)
-sample_regx = re.compile("^\d+_\d+_\d+_.*$", re.IGNORECASE)
+regx = re.compile(r"^.*master.h5$", re.IGNORECASE)
+sample_regx = re.compile(r"^\d+_\d+_\d+_.*$", re.IGNORECASE)
 
 
 class AMDEE(Resource):

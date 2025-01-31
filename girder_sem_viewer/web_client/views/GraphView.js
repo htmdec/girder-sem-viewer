@@ -1,10 +1,11 @@
+import $ from 'jquery';
 import cytoscape from 'cytoscape';
-
-import { restRequest } from 'girder/rest';
-import View from 'girder/views/View';
 
 import GraphItemTemplate from '../templates/graphItem.pug';
 import '../stylesheets/graphItem.styl';
+
+const { restRequest } = girder.rest;
+const View  = girder.views.View;
 
 var cyOptions = {
     node: {

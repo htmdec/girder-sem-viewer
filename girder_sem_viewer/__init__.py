@@ -8,12 +8,16 @@ import logging
 import os
 import re
 
-import cherrypy
+try:
+    import cherrypy
+except ImportError:
+    cherrypy = None
+
 import dateutil.parser
 import magic
 from bson import ObjectId
-from girder import auditLogger, events, logger
-from girder.api import access, filter_logging, rest
+from girder import auditLogger, events
+from girder.api import access, filter_logging
 from girder.api.describe import Description, autoDescribeRoute
 from girder.api.rest import boundHandler, setResponseHeader
 from girder.constants import AccessType
@@ -22,12 +26,16 @@ from girder.models.assetstore import Assetstore
 from girder.models.file import File
 from girder.models.folder import Folder
 from girder.models.item import Item
-from girder.models.model_base import ModelImporter
+from girder.utility.model_importer import ModelImporter
+from girder.plugin import GirderPlugin, registerPluginStaticContent
 from girder.utility import assetstore_utilities, toBool
 from girder.utility.progress import ProgressContext
 from PIL import Image, UnidentifiedImageError
 
 from .rest.amdee import AMDEE
+
+
+logger = logging.getLogger(__name__)
 
 
 class IgnoreURLFilter(logging.Filter):
@@ -130,14 +138,12 @@ def search_resources(self, event):
 
 
 def _get_model(modelName):
-    if modelName not in ["item", "folder"]:
-        return
-
-    if "." in modelName:
-        name, plugin = modelName.rsplit(".", 1)
-        model = ModelImporter.model(name, plugin)
+    if modelName == "item":
+        model = Item()
+    elif modelName == "folder":
+        model = Folder()
     else:
-        model = ModelImporter.model(modelName)
+        model = None
     return model
 
 
@@ -414,22 +420,36 @@ def create_folders(self, parentId, parentType, path):
     return Folder().filter(parent, user)
 
 
-def load(info):
-    Item().exposeFields(level=AccessType.READ, fields="sem")
-    File().ensureIndex(["sha512", {"sparse": False}])
+class SemViewerPlugin(GirderPlugin):
+    DISPLAY_NAME = "SEM Viewer"
 
-    info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
-    info["apiRoot"].item.route("GET", (":id", "tiff_thumbnail"), get_sem_thumbnail)
-    info["apiRoot"].folder.route("POST", ("recursive",), create_folders)
+    def load(self, info):
+        Item().exposeFields(level=AccessType.READ, fields="sem")
+        File().ensureIndex(["sha512", {"sparse": False}])
 
-    info["apiRoot"].amdee = AMDEE()
+        info["apiRoot"].item.route("GET", (":id", "tiff_metadata"), get_tiff_metadata)
+        info["apiRoot"].item.route("GET", (":id", "tiff_thumbnail"), get_sem_thumbnail)
+        info["apiRoot"].folder.route("POST", ("recursive",), create_folders)
 
-    events.bind("rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data)
-    events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
-    regex = "GET ([^/ ?#]+)*/system/check[/ ?#]"
-    filter_logging.addLoggingFilter(regex, 3)
-    for handler in cherrypy.log.access_log.handlers:
-        handler.addFilter(IgnoreURLFilter(("system", "check")))
-        handler.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
-    auditLogger.addFilter(IgnoreURLFilter(("system", "check")))
-    auditLogger.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
+        info["apiRoot"].amdee = AMDEE()
+
+        events.bind(
+            "rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data
+        )
+        events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
+        regex = "GET ([^/ ?#]+)*/system/check[/ ?#]"
+        filter_logging.addLoggingFilter(regex, 3)
+        if cherrypy:
+            for handler in cherrypy.log.access_log.handlers:
+                handler.addFilter(IgnoreURLFilter(("system", "check")))
+                handler.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
+        auditLogger.addFilter(IgnoreURLFilter(("system", "check")))
+        auditLogger.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
+
+        registerPluginStaticContent(
+            plugin="sem_viewer",
+            css=["/style.css"],
+            js=["/girder-plugin-sem-viewer.umd.cjs"],
+            staticDir=os.path.join(os.path.dirname(__file__), "web_client", "dist"),
+            tree=info["serverRoot"],
+        )
