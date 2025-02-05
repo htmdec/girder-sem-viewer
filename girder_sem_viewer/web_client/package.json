@@ -2,13 +2,13 @@
     "name": "@girder/girder-sem-viewer",
     "version": "2.0.0",
     "description": "Preview SEM images in Girder",
-    "homepage": "https://github.com/htmdec/sem_viewer",
+    "homepage": "https://github.com/htmdec/girder-sem-viewer",
     "bugs": {
-      "url": "https://github.com/htmdec/sem_viewer/issues"
+      "url": "https://github.com/htmdec/girder-sem-viewer/issues"
     },
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/htmdec/sem_viewer.git"
+      "url": "git+https://github.com/htmdec/girder-sem-viewer.git"
     },
     "type": "module",
     "files": [

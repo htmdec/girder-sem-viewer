@@ -13,7 +13,7 @@ setup(
     description="Girder Plugin enabling preview of SEM data.",
     packages=find_packages(),
     include_package_data=True,
-    license="BSD",
+    license="BSD-3-Clause",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
