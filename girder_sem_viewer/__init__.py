@@ -17,7 +17,7 @@ import dateutil.parser
 import magic
 from bson import ObjectId
 from girder import auditLogger, events
-from girder.api import access, filter_logging
+from girder.api import access
 from girder.api.describe import Description, autoDescribeRoute
 from girder.api.rest import boundHandler, setResponseHeader
 from girder.constants import AccessType
@@ -26,14 +26,13 @@ from girder.models.assetstore import Assetstore
 from girder.models.file import File
 from girder.models.folder import Folder
 from girder.models.item import Item
-from girder.utility.model_importer import ModelImporter
 from girder.plugin import GirderPlugin, registerPluginStaticContent
 from girder.utility import assetstore_utilities, toBool
+from girder.utility.model_importer import ModelImporter
 from girder.utility.progress import ProgressContext
 from PIL import Image, UnidentifiedImageError
 
 from .rest.amdee import AMDEE
-
 
 logger = logging.getLogger(__name__)
 
@@ -437,12 +436,10 @@ class SemViewerPlugin(GirderPlugin):
             "rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data
         )
         events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
-        regex = "GET ([^/ ?#]+)*/system/check[/ ?#]"
-        filter_logging.addLoggingFilter(regex, 3)
-        if cherrypy:
-            for handler in cherrypy.log.access_log.handlers:
-                handler.addFilter(IgnoreURLFilter(("system", "check")))
-                handler.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
+        for app in info["serverRoot"].apps.values():
+            app.log.access_log.addFilter(IgnoreURLFilter(("system", "check")))
+            app.log.access_log.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
+
         auditLogger.addFilter(IgnoreURLFilter(("system", "check")))
         auditLogger.addFilter(IgnorePhraseFilter("Uptime-Kuma"))
 
