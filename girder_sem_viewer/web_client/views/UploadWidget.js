@@ -3,17 +3,18 @@
 import $ from 'jquery';
 import _ from 'underscore';
 
-import FileModel from 'girder/models/FileModel';
-import FolderModel from 'girder/models/FolderModel';
-import HierarchyWidget from 'girder/views/widgets/HierarchyWidget';
-import UploadWidget from 'girder/views/widgets/UploadWidget';
-import { getCurrentUser } from 'girder/auth';
-import { AccessType } from 'girder/constants';
-import { formatSize } from 'girder/misc';
-import { wrap } from 'girder/utilities/PluginUtils';
-import { restRequest } from 'girder/rest';
-
 import '../stylesheets/uploadWidget.styl';
+
+const FileModel = girder.models.FileModel;
+const FolderModel = girder.models.FolderModel;
+const HierarchyWidget = girder.views.widgets.HierarchyWidget;
+const UploadWidget = girder.views.widgets.UploadWidget;
+const { getCurrentUser } = girder.auth;
+const { AccessType } = girder.constants;
+const { formatSize } = girder.misc;
+const { wrap } = girder.utilities.PluginUtils;
+const { restRequest } = girder.rest;
+
 
 function getSubdirectoryPrefix(file) {
     const parts = file.webkitRelativePath.split('/');

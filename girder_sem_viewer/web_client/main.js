@@ -1,14 +1,15 @@
 // Extends and overrides API
-import { wrap } from 'girder/utilities/PluginUtils';
-
-import ItemView from 'girder/views/body/ItemView';
-import SearchFieldWidget from 'girder/views/widgets/SearchFieldWidget';
 
 import SemItemView from './views/SemView';
 import GraphItemView from './views/GraphView';
 import './views/FilesystemImportView';
 import './views/ItemView';
 import './views/UploadWidget';
+
+const { wrap } = girder.utilities.PluginUtils;
+const ItemView = girder.views.body.ItemView;
+const SearchFieldWidget = girder.views.widgets.SearchFieldWidget;
+
 
 wrap(ItemView, 'render', function (render) {
     this.once('g:rendered', () => {

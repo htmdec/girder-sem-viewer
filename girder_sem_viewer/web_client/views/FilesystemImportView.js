@@ -1,10 +1,10 @@
 import $ from 'jquery';
 
-import router from 'girder/router';
-import FilesystemImportView from 'girder/views/body/FilesystemImportView';
-import { wrap } from 'girder/utilities/PluginUtils';
-
 import FilesystemImportTemplate from '../templates/filesystemImport.pug';
+
+const router = girder.router;
+const FilesystemImportView = girder.views.body.FilesystemImportView;
+const { wrap } = girder.utilities.PluginUtils;
 
 FilesystemImportView.prototype.events['submit .g-filesystem-import-form'] = function (e) {
     e.preventDefault();
