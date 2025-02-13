@@ -30,6 +30,8 @@ from girder.plugin import GirderPlugin, registerPluginStaticContent
 from girder.utility import assetstore_utilities, toBool
 from girder.utility.model_importer import ModelImporter
 from girder.utility.progress import ProgressContext
+import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, UnidentifiedImageError
 
 from .rest.amdee import AMDEE
@@ -384,11 +386,17 @@ def get_sem_thumbnail(self, item):
 
     try:
         with Image.open(path, "r") as img:
-            if img.mode.startswith("L"):
-                img = img.convert("RGB")
-            img.thumbnail((2048, 2048))
             fp = io.BytesIO()
-            img.save(fp, format="PNG")
+            imarray = np.array(img)
+            fig = plt.figure(frameon=False)
+            fig.set_size_inches(6, 6)
+            ax = plt.Axes(fig, [0., 0., 1., 1.])
+            ax.set_axis_off()
+            fig.add_axes(ax)
+            ax.imshow(imarray, cmap="gray", aspect="auto")
+            fig.savefig(fp, format="png", dpi=200)
+            plt.close(fig)
+            fp.seek(0)
             return base64.b64encode(fp.getvalue()).decode()
     except UnidentifiedImageError:
         pass
