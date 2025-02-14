@@ -15,6 +15,7 @@ except ImportError:
 
 import dateutil.parser
 import magic
+import numpy as np
 from bson import ObjectId
 from girder import auditLogger, events
 from girder.api import access
@@ -30,8 +31,6 @@ from girder.plugin import GirderPlugin, registerPluginStaticContent
 from girder.utility import assetstore_utilities, toBool
 from girder.utility.model_importer import ModelImporter
 from girder.utility.progress import ProgressContext
-import numpy as np
-import matplotlib.pyplot as plt
 from PIL import Image, UnidentifiedImageError
 
 from .rest.amdee import AMDEE
@@ -385,18 +384,24 @@ def get_sem_thumbnail(self, item):
         return
 
     try:
-        with Image.open(path, "r") as img:
+        with Image.open(path, "r") as im:
+            if im.mode == "F":  # Floating-point grayscale
+                imarray = np.array(im)
+                imarray = (
+                    (imarray - imarray.min()) / (imarray.max() - imarray.min()) * 255
+                )  # Normalize to [0, 255]
+                im = Image.fromarray(
+                    imarray.astype("uint8")
+                )  # Convert back to 8-bit grayscale
+
+            elif im.mode in ["I;16", "I"]:  # 16-bit or 32-bit integer grayscale
+                im = im.point(lambda i: i * (255 / max(im.getextrema())))
+
+            elif im.mode not in ["L"]:
+                im = im.convert("RGB").convert("L")
+            im = im.resize((1200, 1200), Image.LANCZOS)
             fp = io.BytesIO()
-            imarray = np.array(img)
-            fig = plt.figure(frameon=False)
-            fig.set_size_inches(6, 6)
-            ax = plt.Axes(fig, [0., 0., 1., 1.])
-            ax.set_axis_off()
-            fig.add_axes(ax)
-            ax.imshow(imarray, cmap="gray", aspect="auto")
-            fig.savefig(fp, format="png", dpi=200)
-            plt.close(fig)
-            fp.seek(0)
+            im.save(fp, format="PNG")
             return base64.b64encode(fp.getvalue()).decode()
     except UnidentifiedImageError:
         pass
