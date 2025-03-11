@@ -2,6 +2,7 @@
 
 import SemItemView from './views/SemView';
 import GraphItemView from './views/GraphView';
+import './views/HierarchyWidget';
 import './views/FilesystemImportView';
 import './views/ItemView';
 import './views/UploadWidget';
