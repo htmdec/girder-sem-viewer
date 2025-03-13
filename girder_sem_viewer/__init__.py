@@ -332,7 +332,7 @@ def getTiffHeaderFromItemMeta(item):
         pass
 
 
-@access.user
+@access.public
 @boundHandler
 @autoDescribeRoute(
     Description("Get Tiff metadata from an item").modelParam(
@@ -363,7 +363,7 @@ def get_tiff_metadata(self, item):
     return header
 
 
-@access.user
+@access.public
 @boundHandler
 @autoDescribeRoute(
     Description("Get thumbnail for SEM data").modelParam(
