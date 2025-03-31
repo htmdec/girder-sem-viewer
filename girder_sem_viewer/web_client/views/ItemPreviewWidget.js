@@ -1,6 +1,3 @@
-import _ from 'underscore';
-import $ from 'jquery';
-
 import ItemPreviewWidgetTemplate from '../templates/itemPreviewWidget.pug';
 import ItemPreviewItemTemplate from '../templates/itemPreviewItem.pug';
 import '../stylesheets/itemPreviewWidget.styl';
@@ -8,6 +5,8 @@ import '../stylesheets/itemPreviewWidget.styl';
 const View = girder.views.View;
 const { getApiRoot, restRequest } = girder.rest;
 const { _whenAll } = girder.misc;
+const $ = girder.$;
+const _ = girder._;
 
 /**
  * The Item Preview widget shows a preview of items under a given folder.

@@ -3,7 +3,6 @@
 
 import base64
 import io
-import json
 import logging
 import os
 import re
@@ -16,19 +15,18 @@ except ImportError:
 import dateutil.parser
 import magic
 import numpy as np
-from bson import ObjectId
 from girder import auditLogger, events
 from girder.api import access
 from girder.api.describe import Description, autoDescribeRoute
 from girder.api.rest import boundHandler, setResponseHeader
 from girder.constants import AccessType
-from girder.exceptions import FilePathException, ValidationException
+from girder.exceptions import FilePathException, GirderException, ValidationException
 from girder.models.assetstore import Assetstore
 from girder.models.file import File
 from girder.models.folder import Folder
 from girder.models.item import Item
 from girder.plugin import GirderPlugin, registerPluginStaticContent
-from girder.utility import assetstore_utilities, toBool
+from girder.utility import assetstore_utilities, search, toBool
 from girder.utility.model_importer import ModelImporter
 from girder.utility.progress import ProgressContext
 from PIL import Image, UnidentifiedImageError
@@ -110,33 +108,6 @@ def import_sem_data(self, event):
     event.preventDefault().addResponse(None)
 
 
-@access.public
-@boundHandler
-def search_resources(self, event):
-    params = event.info["params"]
-    mode = params.get("mode", "text")
-    if mode not in ("boundText", "jhuId"):
-        return
-
-    filters = {}
-    for key, value in json.loads(params.get("filters", "{}")).items():
-        if key.endswith("Id"):
-            filters[key] = ObjectId(value)
-        else:
-            filters[key] = value
-
-    user = self.getCurrentUser()
-    limit, offset, sort = self.getPagingParameters(params, "name")
-    types = json.loads(params.get("types", "[]"))
-    level = params.get("level", AccessType.READ)
-    level = AccessType.validate(level)
-
-    if mode == "boundText":
-        return boundText_search(event, user, filters, level, limit, offset, sort, types)
-    elif mode == "jhuId":
-        return jhuId_search(event, user, filters, level, limit, offset, sort, types)
-
-
 def _get_model(modelName):
     if modelName == "item":
         model = Item()
@@ -147,21 +118,17 @@ def _get_model(modelName):
     return model
 
 
-def jhuId_search(event, user, filters, level, limit, offset, sort, types):
-    params = event.info["params"]
+def jhuId_search(query, types, user, level, limit, offset):
     results = {}
     allowed = {
         "collection": ["_id", "name", "description"],
-        "folder": ["_id", "name", "description", "meta", "parentId"],
-        "item": ["_id", "name", "description", "meta", "folderId"],
-        "user": ["_id", "firstName", "lastName", "login"],
+        "folder": ["_id", "name", "description", "parentId"],
+        "item": ["_id", "name", "description", "folderId"],
     }
-
+    query = {"meta.jhu_id": query}  # Assuming we are searching by JHU ID
     for modelName in types:
         model = _get_model(modelName)
         if model is not None:
-            query = {"meta.jhu_id": params.get("q")}
-            query.update(filters)
             if hasattr(model, "filterResultsByPermission"):
                 cursor = model.find(
                     query, fields=allowed[modelName] + ["public", "access"]
@@ -178,32 +145,9 @@ def jhuId_search(event, user, filters, level, limit, offset, sort, types):
                         fields=allowed[modelName],
                         limit=limit,
                         offset=offset,
-                        sort=sort,
                     )
                 )
-    event.preventDefault().addResponse(results)
-
-
-def boundText_search(event, user, filters, level, limit, offset, sort, types):
-    params = event.info["params"]
-    results = {}
-    for modelName in types:
-        model = _get_model(modelName)
-
-        if model is not None:
-            results[modelName] = [
-                model.filter(d, user)
-                for d in model.textSearch(
-                    query=params.get("q"),
-                    user=user,
-                    limit=int(params.get("limit", "10")),
-                    offset=int(params.get("offset", "0")),
-                    level=level,
-                    filters=filters,
-                )
-            ]
-
-    event.preventDefault().addResponse(results)
+    return results
 
 
 class HTMDECImporter:
@@ -448,7 +392,10 @@ class SemViewerPlugin(GirderPlugin):
         events.bind(
             "rest.post.assetstore/:id/import.before", "sem_viewer", import_sem_data
         )
-        events.bind("rest.get.resource/search.before", "sem_viewer", search_resources)
+        try:
+            search.addSearchMode("jhuId", jhuId_search)
+        except GirderException:
+            logger.warning("Search mode already registered, skipping.")
         for app in info["serverRoot"].apps.values():
             app.log.access_log.addFilter(IgnoreURLFilter(("system", "check")))
             app.log.access_log.addFilter(IgnorePhraseFilter("Uptime-Kuma"))

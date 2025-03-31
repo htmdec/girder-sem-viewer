@@ -1,8 +1,5 @@
 // Description: UploadWidget.js
 
-import $ from 'jquery';
-import _ from 'underscore';
-
 import '../stylesheets/uploadWidget.styl';
 
 const FileModel = girder.models.FileModel;
@@ -14,7 +11,8 @@ const { AccessType } = girder.constants;
 const { formatSize } = girder.misc;
 const { wrap } = girder.utilities.PluginUtils;
 const { restRequest } = girder.rest;
-
+const $ = girder.$;
+const _ = girder._;
 
 function getSubdirectoryPrefix(file) {
     const parts = file.webkitRelativePath.split('/');
