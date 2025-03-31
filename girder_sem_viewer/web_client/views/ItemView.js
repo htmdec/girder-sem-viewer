@@ -33,7 +33,7 @@ wrap(ItemView, 'render', function (render) {
         if (this._dataRequest !== null) {
             this._dataRequest
                 .done((results) => {
-                    $('.g-item-info').append(RelatedDataWidgetTemplate({
+                    girder.$('.g-item-info').append(RelatedDataWidgetTemplate({
                         items: results.item,
                         folders: results.folder,
                         parentView: this

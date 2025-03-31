@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import cytoscape from 'cytoscape';
 
 import GraphItemTemplate from '../templates/graphItem.pug';
@@ -6,6 +5,7 @@ import '../stylesheets/graphItem.styl';
 
 const { restRequest } = girder.rest;
 const View  = girder.views.View;
+const $ = girder.$;
 
 var cyOptions = {
     node: {
