@@ -9,7 +9,7 @@ setup(
     name="girder-sem-viewer",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="2.2.2",
+    version="2.3.0",
     description="Girder Plugin enabling preview of SEM data.",
     packages=find_packages(),
     include_package_data=True,
