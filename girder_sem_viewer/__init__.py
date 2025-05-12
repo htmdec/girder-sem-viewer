@@ -5,6 +5,7 @@ import base64
 import io
 import logging
 import os
+from pathlib import Path
 import re
 
 try:
@@ -407,6 +408,6 @@ class SemViewerPlugin(GirderPlugin):
             plugin="sem_viewer",
             css=["/style.css"],
             js=["/girder-plugin-sem-viewer.umd.cjs"],
-            staticDir=os.path.join(os.path.dirname(__file__), "web_client", "dist"),
+            staticDir=Path(__file__).parent / "web_client" / "dist",
             tree=info["serverRoot"],
         )
