@@ -5,8 +5,8 @@ import base64
 import io
 import logging
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 
 try:
     import cherrypy
@@ -16,6 +16,7 @@ except ImportError:
 import dateutil.parser
 import magic
 import numpy as np
+import scipy.ndimage as ndimage
 from girder import auditLogger, events
 from girder.api import access
 from girder.api.describe import Description, autoDescribeRoute
@@ -340,8 +341,15 @@ def get_sem_thumbnail(self, item):
                 )  # Convert back to 8-bit grayscale
 
             elif im.mode in ["I;16", "I"]:  # 16-bit or 32-bit integer grayscale
-                im = im.point(lambda i: i * (255 / max(im.getextrema())))
-
+                if item.get("meta", {}).get("KafkaTopic") == "aimdl-xrd":
+                    im = np.asarray(im)
+                    im = np.log(im - im.min() + 1e-3)
+                    im = ndimage.gaussian_filter(im, 2, mode="nearest")
+                    im = Image.fromarray(
+                        ((im - im.min()) / (im.max() - im.min()) * 255).astype("uint8")
+                    )
+                else:
+                    im = im.point(lambda i: i * (255 / max(im.getextrema())))
             elif im.mode not in ["L"]:
                 im = im.convert("RGB").convert("L")
             im = im.resize((1200, 1200), Image.LANCZOS)
