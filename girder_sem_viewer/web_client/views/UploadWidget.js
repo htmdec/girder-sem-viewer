@@ -54,7 +54,10 @@ wrap(UploadWidget, 'initialize', function (initialize, settings) {
 });
 
 wrap(UploadWidget, 'render', function (render) {
-    this.parentType = this.parent.attributes._modelType;
+    this.parentType = null;
+    if (this.parent && this.parent.attributes && this.parent.attributes._modelType) {
+        this.parentType = this.parent.attributes._modelType;
+    }
     render.call(this);
     if (this.parentType !== 'item' && !this.onlyFiles) {
         var uploadFolder = '<div class="g-upload-folder"><i class="icon-folder-open"></i>Select a folder to upload</div>';
