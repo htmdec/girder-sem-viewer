@@ -29,11 +29,17 @@ var VegaWidget = View.extend({
                 url: `item/${this.item.id}/download`
             })
                 .done(_.bind(function (data) {
-                    const parsedData = data.split('\n').slice(1).map(row => {
-                      const [x, y] = row.split(',');
+                    const vegaSpec = JSON.parse(meta.vega);
+                    // Check for two extra keys: 'vega:separator' and 'vega:skipRows'
+                    // to determine how to parse the data, pop them out of the
+                    // meta object so they don't interfere with the Vega spec
+                    const skipRows = parseInt(meta['vega:skipRows'] || '1', 10);
+                    const separator = meta['vega:separator'] || ',';
+                    const parsedData = data.split('\n').slice(skipRows).map(row => {
+                      const [x, y] = row.split(separator);
                       return {x: parseFloat(x), y: parseFloat(y)};
                     });
-                    const vegaSpec = JSON.parse(meta.vega);
+
                     const spec = {...vegaSpec, data: {values: parsedData}};
                     let runtime = parse(compile(spec).spec);
                     let view = new VegaView(runtime)
