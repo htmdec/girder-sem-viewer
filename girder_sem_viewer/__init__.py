@@ -16,7 +16,6 @@ except ImportError:
 import dateutil.parser
 import magic
 import numpy as np
-import scipy.ndimage as ndimage
 from girder import auditLogger, events
 from girder.api import access
 from girder.api.describe import Description, autoDescribeRoute
@@ -341,15 +340,11 @@ def get_sem_thumbnail(self, item):
                 )  # Convert back to 8-bit grayscale
 
             elif im.mode in ["I;16", "I"]:  # 16-bit or 32-bit integer grayscale
-                if item.get("meta", {}).get("KafkaTopic") == "aimdl-xrd":
-                    im = np.asarray(im)
-                    im = np.log(im - im.min() + 1e-3)
-                    im = ndimage.gaussian_filter(im, 2, mode="nearest")
-                    im = Image.fromarray(
-                        ((im - im.min()) / (im.max() - im.min()) * 255).astype("uint8")
-                    )
-                else:
-                    im = im.point(lambda i: i * (255 / max(im.getextrema())))
+                arr = np.asarray(im, dtype=np.float32)
+                p_low, p_high = np.percentile(arr, (1, 99))
+                arr = np.clip(arr, p_low, p_high)  # Clip to percentile range
+                arr = ((arr - p_low) / (p_high - p_low) * 255).astype("uint8")  # Normalize
+                im = Image.fromarray(arr)
             elif im.mode not in ["L"]:
                 im = im.convert("RGB").convert("L")
             im = im.resize((1200, 1200), Image.LANCZOS)
