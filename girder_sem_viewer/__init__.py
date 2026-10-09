@@ -93,7 +93,7 @@ def import_sem_data(self, event):
     user = self.getCurrentUser()
     assetstore = Assetstore().load(event.info["id"])
     adapter = assetstore_utilities.getAssetstoreAdapter(assetstore)
-    parent = self.model(params["destinationType"]).load(
+    parent = ModelImporter.model(params["destinationType"]).load(
         params["destinationId"], user=user, level=AccessType.ADMIN, exc=True
     )
     params["fileExcludeRegex"] = r"^_\..*"
@@ -281,9 +281,8 @@ def getTiffHeaderFromItemMeta(item):
     )
 )
 def get_tiff_metadata(self, item):
-    try:
-        child_file = next(iter(Item().childFiles(item)))
-    except IndexError:
+    child_file = next(iter(Item().childFiles(item)), None)
+    if child_file is None:
         return
     try:
         path = File().getLocalFilePath(child_file)
@@ -312,9 +311,8 @@ def get_tiff_metadata(self, item):
     )
 )
 def get_sem_thumbnail(self, item):
-    try:
-        child_file = next(iter(Item().childFiles(item)))
-    except IndexError:
+    child_file = next(iter(Item().childFiles(item)), None)
+    if child_file is None:
         return
     try:
         path = File().getLocalFilePath(child_file)
