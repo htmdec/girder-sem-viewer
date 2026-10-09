@@ -7,14 +7,13 @@ from girder.constants import AccessType
 from girder.models.folder import Folder
 from girder.models.item import Item
 
-
 regx = re.compile(r"^.*master.h5$", re.IGNORECASE)
 sample_regx = re.compile(r"^\d+_\d+_\d+_.*$", re.IGNORECASE)
 
 
 class AMDEE(Resource):
     def __init__(self):
-        super(AMDEE, self).__init__()
+        super().__init__()
         self.resourceName = "amdee"
         self.route("GET", ("xrd",), self.get_xrd)
 
@@ -55,7 +54,7 @@ class AMDEE(Resource):
                     data[partition_name] = {"folders": set()}
                 data[partition_name]["folders"].add(item["folderId"])
 
-        for key in data:
-            data[key]["folders"] = list(data[key]["folders"])
+        for element in data.values():
+            element["folders"] = list(element["folders"])
 
         return data
