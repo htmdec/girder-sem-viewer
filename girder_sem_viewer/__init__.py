@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import base64
 import io
 import logging
@@ -47,13 +44,12 @@ class IgnoreURLFilter(logging.Filter):
         self.status = status
 
     def filter(self, record):
-        if hasattr(record, "details"):
-            if (
-                record.details.get("method") == self.verb
-                and record.details.get("route") == self.path
-                and record.details.get("status") == self.status
-            ):
-                return False
+        if hasattr(record, "details") and (
+            record.details.get("method") == self.verb
+            and record.details.get("route") == self.path
+            and record.details.get("status") == self.status
+        ):
+            return False
         match = f"{self.verb} /api/v1/{'/'.join(self.path)}"
         return match not in record.getMessage()
 
@@ -80,7 +76,7 @@ def import_sem_data(self, event):
         import_cls = PDVHTMDECImporter
     else:
         raise ValidationException(f"Unknown data type: {data_type}")
-    logger.warning(f"Importing using {str(import_cls)} importer")
+    logger.warning(f"Importing using {import_cls!s} importer")
 
     if params["destinationType"] != "folder":
         raise ValidationException(
@@ -89,15 +85,15 @@ def import_sem_data(self, event):
 
     importPath = params.get("importPath")
     if not os.path.exists(importPath):
-        raise ValidationException("Not found: %s." % importPath)
+        raise ValidationException(f"Not found: {importPath}.")
     if not os.path.isdir(importPath):
-        raise ValidationException("Not a directory: %s." % importPath)
+        raise ValidationException(f"Not a directory: {importPath}.")
 
     progress = toBool(params.get("progress", "false"))
     user = self.getCurrentUser()
     assetstore = Assetstore().load(event.info["id"])
     adapter = assetstore_utilities.getAssetstoreAdapter(assetstore)
-    parent = self.model(params["destinationType"]).load(
+    parent = ModelImporter.model(params["destinationType"]).load(
         params["destinationId"], user=user, level=AccessType.ADMIN, exc=True
     )
     params["fileExcludeRegex"] = r"^_\..*"
@@ -274,7 +270,7 @@ def getTiffHeaderFromItemMeta(item):
         with File().open(fobj) as fp:
             return fp.read().decode("utf-8")
     except Exception:
-        pass
+        logger.warning(f"Failed to read header from file {fileId}", exc_info=True)
 
 
 @access.public
@@ -285,9 +281,8 @@ def getTiffHeaderFromItemMeta(item):
     )
 )
 def get_tiff_metadata(self, item):
-    try:
-        child_file = list(Item().childFiles(item))[0]
-    except IndexError:
+    child_file = next(iter(Item().childFiles(item)), None)
+    if child_file is None:
         return
     try:
         path = File().getLocalFilePath(child_file)
@@ -316,9 +311,8 @@ def get_tiff_metadata(self, item):
     )
 )
 def get_sem_thumbnail(self, item):
-    try:
-        child_file = list(Item().childFiles(item))[0]
-    except IndexError:
+    child_file = next(iter(Item().childFiles(item)), None)
+    if child_file is None:
         return
     try:
         path = File().getLocalFilePath(child_file)
@@ -343,7 +337,9 @@ def get_sem_thumbnail(self, item):
                 arr = np.asarray(im, dtype=np.float32)
                 p_low, p_high = np.percentile(arr, (1, 99))
                 arr = np.clip(arr, p_low, p_high)  # Clip to percentile range
-                arr = ((arr - p_low) / (p_high - p_low) * 255).astype("uint8")  # Normalize
+                arr = ((arr - p_low) / (p_high - p_low) * 255).astype(
+                    "uint8"
+                )  # Normalize
                 im = Image.fromarray(arr)
             elif im.mode not in ["L"]:
                 im = im.convert("RGB").convert("L")
